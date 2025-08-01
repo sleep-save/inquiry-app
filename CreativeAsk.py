@@ -3,8 +3,9 @@ import pandas as pd
 from datetime import datetime
 import os
 
-# Excel 文件路径
-EXCEL_FILE = 'inquiry_data.xlsx'
+# 设置保存路径：保存到桌面
+desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+EXCEL_FILE = os.path.join(desktop, "inquiry_data.xlsx")
 
 # 初始化 Excel 文件（如果不存在）
 if not os.path.exists(EXCEL_FILE):
@@ -38,7 +39,7 @@ with st.form("inquiry_form"):
 
     submitted = st.form_submit_button("提交")
 
-# 提交保存
+# 提交保存逻辑（带错误处理）
 if submitted:
     new_data = {
         '时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -57,7 +58,27 @@ if submitted:
         '付款方式': payment
     }
 
-    df_existing = pd.read_excel(EXCEL_FILE)
+    try:
+        # 写入 Excel
+        df_existing = pd.read_excel(EXCEL_FILE)
+        df_existing = pd.concat([df_existing, pd.DataFrame([new_data])], ignore_index=True)
+        df_existing.to_excel(EXCEL_FILE, index=False)
+        st.success("✅ 信息已保存到 Excel！")
+    except PermissionError:
+        st.error("❌ 无法写入 Excel：文件可能正在被打开，请先关闭 'inquiry_data.xlsx' 后重试。")
+    except FileNotFoundError:
+        st.error(f"❌ 未找到 Excel 文件：请确认路径 {EXCEL_FILE} 是否正确。")
+    except Exception as e:
+        st.error(f"❌ 保存时出错：{e}")
+
+# 新增：查看历史记录
+if st.checkbox("查看历史记录"):
+    try:
+        df = pd.read_excel(EXCEL_FILE)
+        st.dataframe(df)
+    except Exception as e:
+        st.error(f"读取 Excel 出错：{e}")
+
     df_existing = pd.concat([df_existing, pd.DataFrame([new_data])], ignore_index=True)
     df_existing.to_excel(EXCEL_FILE, index=False)
     st.success("✅ 信息已保存到 Excel！")
